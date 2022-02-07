@@ -46,13 +46,17 @@ local function findOrCreateDescendantNode(self, keys)
   return node
 end
 
-local function invokeNodeCallbacks(self, params)
+local function invokeNodeCallbacks(self, checkHandled, params)
   -- copy the hash into an array, for safety (self-erasures)
   local callbacks, count = hash2array(self.callbacks)
+  local handled = false
   for i=1,#callbacks do
-    callbacks[i](unpack(params))
+    handled = callbacks[i](unpack(params))
+    if checkHandled and handled then
+      break
+    end
   end
-  return count
+  return count, handled
 end
 
 local function invokeAllNodeCallbacksInSubTree(self, params)
@@ -63,7 +67,7 @@ local function invokeAllNodeCallbacksInSubTree(self, params)
   return counter
 end
 
-local function invokeNodeCallbacksFromPath(self, path)
+local function invokeNodeCallbacksFromPath(self, checkHandled, path)
   local node = self
   local params = copy(path)
   local counter = invokeNodeCallbacks(node, params)
@@ -72,7 +76,8 @@ local function invokeNodeCallbacksFromPath(self, path)
     node = node.children[path[i]]
     if not node then break end
     table.remove(params, 1)
-    counter = counter + invokeNodeCallbacks(node, params)
+    local count, anyHandled = invokeNodeCallbacks(node, checkHandled, params)
+    counter = counter + count
   end
 
   return counter
@@ -155,7 +160,11 @@ function beholder.group(groupId, f)
 end
 
 function beholder.trigger(...)
-  return falseIfZero( invokeNodeCallbacksFromPath(root, {...}) )
+  return falseIfZero( invokeNodeCallbacksFromPath(root, false, {...}) )
+end
+
+function beholder.triggerOne(...)
+  return falseIfZero( invokeNodeCallbacksFromPath(root, true, {...}) )
 end
 
 function beholder.triggerAll(...)
