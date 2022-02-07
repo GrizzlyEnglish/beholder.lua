@@ -44,6 +44,10 @@ end
 
 (Note. if you are doing lots of that "if whatever.state then ..." you might want to give a look to "stateful.lua".http.//github.com/kikito/stateful.lua )
 
+h1. What I added
+
+Allow for many event watchers, but trigger only one handler. This allows the watchers to signal if they handled the event or not, and if so terminate the event propigation.
+
 h1. Why?
 
 This library tries to solve the following problem. some actions need to be executed when some asynchronous condition is fulfilled. By "asyncronous" we mean that it something that typically doesn't depend on the code. Hence precalculating it beforehand is impractical.
