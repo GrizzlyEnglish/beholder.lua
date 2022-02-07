@@ -51,7 +51,7 @@ local function invokeNodeCallbacks(self, checkHandled, params)
   local callbacks, count = hash2array(self.callbacks)
   local handled = false
   for i=1,#callbacks do
-    handled = callbacks[i](unpack(params))
+    handled = handled or callbacks[i](unpack(params))
     if checkHandled and handled then
       break
     end
@@ -71,16 +71,18 @@ local function invokeNodeCallbacksFromPath(self, checkHandled, path)
   local node = self
   local params = copy(path)
   local counter = invokeNodeCallbacks(node, params)
+  local handled = false
 
   for i=1, #path do
     node = node.children[path[i]]
     if not node then break end
     table.remove(params, 1)
     local count, anyHandled = invokeNodeCallbacks(node, checkHandled, params)
+    handled = anyHandled
     counter = counter + count
   end
 
-  return counter
+  return counter, handled
 end
 
 local function addCallbackToNode(self, callback)
@@ -160,15 +162,18 @@ function beholder.group(groupId, f)
 end
 
 function beholder.trigger(...)
-  return falseIfZero( invokeNodeCallbacksFromPath(root, false, {...}) )
+  local count,handled = invokeNodeCallbacksFromPath(root, false, {...})
+  return falseIfZero(count), handled
 end
 
 function beholder.triggerOne(...)
-  return falseIfZero( invokeNodeCallbacksFromPath(root, true, {...}) )
+  local count,handled = invokeNodeCallbacksFromPath(root, true, {...})
+  return falseIfZero(count), handled
 end
 
 function beholder.triggerAll(...)
-  return falseIfZero( invokeAllNodeCallbacksInSubTree(root, {...}) )
+  local count,handled = invokeAllNodeCallbacksInSubTree(root, {...})
+  return falseIfZero(count), handled
 end
 
 function beholder.reset()
